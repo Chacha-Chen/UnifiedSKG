@@ -12,15 +12,16 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+# TODO： This code can be push to HuggingFace as a new contribution
+#  The official script will get stuck in the first stage, due to the multiple links in its download instead of one.
 """MultiWOZ v2.2: Multi-domain Wizard of OZ version 2.2"""
 
-
 import json
+import os
+from collections import OrderedDict
 
 import datasets
 
-
-# TODO: Add BibTeX citation
 # Find for instance the citation on arxiv or on the dataset repo/website
 _CITATION = """\
 @article{corr/abs-2007-12720,
@@ -41,7 +42,6 @@ _CITATION = """\
 }
 """
 
-# TODO: Add description of the dataset here
 # You can copy an official description
 _DESCRIPTION = """\
 Multi-Domain Wizard-of-Oz dataset (MultiWOZ), a fully-labeled collection of human-human written conversations spanning over multiple domains and topics.
@@ -52,58 +52,63 @@ across 17.3% of the utterances on top of MultiWOZ 2.1 and redefines the ontology
 """
 
 _LICENSE = "Apache License 2.0"
+# git: 44f0f8479f11721831c5591b839ad78827da197b
+URL = "https://github.com/budzianowski/multiwoz/archive/44f0f8479f11721831c5591b839ad78827da197b.zip"
 
-# TODO: Add link to the official dataset URLs here
-# The HuggingFace dataset library don't host the datasets but only point to the original files
-# This can be an arbitrary nested dict/list of URLs (see below in `_split_generators` method)
-_URL_LIST = [
-    ("dialogue_acts", "https://github.com/budzianowski/multiwoz/raw/master/data/MultiWOZ_2.2/dialog_acts.json")
-]
-_URL_LIST += [
-    (
-        f"train_{i:03d}",
-        f"https://github.com/budzianowski/multiwoz/raw/master/data/MultiWOZ_2.2/train/dialogues_{i:03d}.json",
-    )
-    for i in range(1, 18)
-]
-_URL_LIST += [
-    (
-        f"dev_{i:03d}",
-        f"https://github.com/budzianowski/multiwoz/raw/master/data/MultiWOZ_2.2/dev/dialogues_{i:03d}.json",
-    )
-    for i in range(1, 3)
-]
-_URL_LIST += [
-    (
-        f"test_{i:03d}",
-        f"https://github.com/budzianowski/multiwoz/raw/master/data/MultiWOZ_2.2/test/dialogues_{i:03d}.json",
-    )
-    for i in range(1, 3)
-]
 
-_URLs = dict(_URL_LIST)
+def load_entities(multi_woz_22_entity_file_paths: list, db_rootpath):
+    """
+
+    @param multi_woz_22_entity_file_paths: a list of .json which we can load kb/entities
+    @return:
+    """
+    under_scored_entity_dict = OrderedDict()
+    for multi_woz_22_entity_file_path in multi_woz_22_entity_file_paths:
+        with open(os.path.join(db_rootpath,multi_woz_22_entity_file_path),'r') as f:
+            # FIXME: ask dialogue expert for whether this mean of entities extraction is right
+            # with open(db_paths[domain], 'r') as f:
+            #     self.dbs[domain] = json.loads(f.read().lower())
+            # entities = json.load(f)
+            print(multi_woz_22_entity_file_path)
+            entities = json.loads(f.read())
+            # print(entities)
+            for entity_item in entities:
+                for entity_name, entity_value in entity_item.items():
+                    if isinstance(entity_value, str):
+                        under_scored_entity_dict[entity_value] = entity_value.replace(" ", "_")
+
+    return under_scored_entity_dict
+
+
+def underscore_entities(dialogue_str, global_entities_dict):
+    """
+    Underscore the entities in dialogue.
+    @param dialogue_str:
+    @param global_entities_dict:
+
+    @return:
+
+    entities_in_this_turn: dict: the entities of this turn.
+    processed_dialogue_str: string with entities underscored if replace=True else the same as it was.
+    """
+    processed_dialogue_str: str = dialogue_str
+
+    for entity in global_entities_dict.keys():
+        if entity in dialogue_str:
+            processed_dialogue_str = processed_dialogue_str.replace(entity, global_entities_dict[entity])
+    return processed_dialogue_str
 
 
 class MultiWozV22(datasets.GeneratorBasedBuilder):
-
     VERSION = datasets.Version("2.2.0")
-
-    BUILDER_CONFIGS = [
-        datasets.BuilderConfig(name="v2.2", version=datasets.Version("2.2.0"), description="MultiWOZ v2.2"),
-        datasets.BuilderConfig(
-            name="v2.2_active_only",
-            version=datasets.Version("2.2.0"),
-            description="MultiWOZ v2.2, only keeps around frames with an active intent",
-        ),
-    ]
-
-    DEFAULT_CONFIG_NAME = "v2.2_active_only"
 
     def _info(self):
         features = datasets.Features(
             {
                 "dialogue_id": datasets.Value("string"),
+                "db_root_path": datasets.Value("string"),
                 "services": datasets.Sequence(datasets.Value("string")),
+                "db_paths": datasets.Sequence(datasets.Value("string")),
                 "turns": datasets.Sequence(
                     {
                         "turn_id": datasets.Value("string"),
@@ -174,14 +179,56 @@ class MultiWozV22(datasets.GeneratorBasedBuilder):
         )
 
     def _split_generators(self, dl_manager):
-        data_files = dl_manager.download_and_extract(_URLs)
+        data_path = dl_manager.download_and_extract(URL)
+
+        def __get_file_paths_dict(root_path):
+            file_paths = [
+                ("dialogue_acts", "dialog_acts.json")
+            ]
+            file_paths += [
+                (
+                    f"train_{i:03d}",
+                    f"train/dialogues_{i:03d}.json",
+                )
+                for i in range(1, 18)
+            ]
+            file_paths += [
+                (
+                    f"dev_{i:03d}",
+                    f"dev/dialogues_{i:03d}.json",
+                )
+                for i in range(1, 3)
+            ]
+            file_paths += [
+                (
+                    f"test_{i:03d}",
+                    f"test/dialogues_{i:03d}.json",
+                )
+                for i in range(1, 3)
+            ]
+            file_paths = dict(file_paths)
+            for file_info, file_name in file_paths.items():
+                file_paths[file_info] = os.path.join(root_path, "multiwoz-44f0f8479f11721831c5591b839ad78827da197b",
+                                                     "data", "MultiWOZ_2.2", file_name)
+            return dict(file_paths)
+
+        data_files = __get_file_paths_dict(data_path)
+        db_root_path = os.path.join(data_path, "multiwoz-44f0f8479f11721831c5591b839ad78827da197b", "db")
+        print("root path", db_root_path)
+        print(os.listdir(db_root_path))
+        db_paths = [path for path in os.listdir(db_root_path) if str(path).endswith(".json")]
+
+        print(db_paths)
+        self.global_entities = load_entities(db_paths, db_root_path)
         self.stored_dialogue_acts = json.load(open(data_files["dialogue_acts"]))
+
         return [
             datasets.SplitGenerator(
                 name=spl_enum,
                 gen_kwargs={
                     "filepaths": data_files,
                     "split": spl,
+                    "db_root_path": db_root_path
                 },
             )
             for spl, spl_enum in [
@@ -191,7 +238,7 @@ class MultiWozV22(datasets.GeneratorBasedBuilder):
             ]
         ]
 
-    def _generate_examples(self, filepaths, split):
+    def _generate_examples(self, filepaths, split, db_root_path):
         id_ = -1
         file_list = [fpath for fname, fpath in filepaths.items() if fname.startswith(split)]
         for filepath in file_list:
@@ -201,12 +248,15 @@ class MultiWozV22(datasets.GeneratorBasedBuilder):
                 mapped_acts = self.stored_dialogue_acts.get(dialogue["dialogue_id"], {})
                 res = {
                     "dialogue_id": dialogue["dialogue_id"],
+                    "db_root_path": db_root_path,
                     "services": dialogue["services"],
+                    "db_paths": [os.path.join(db_root_path, "{}.json".format(service)) for service in
+                                 dialogue["services"]],
                     "turns": [
                         {
                             "turn_id": turn["turn_id"],
                             "speaker": turn["speaker"],
-                            "utterance": turn["utterance"],
+                            "utterance": underscore_entities(turn["utterance"], self.global_entities),
                             "frames": [
                                 {
                                     "service": frame["service"],
@@ -242,8 +292,8 @@ class MultiWozV22(datasets.GeneratorBasedBuilder):
                                 }
                                 for frame in turn["frames"]
                                 if (
-                                    "active_only" not in self.config.name
-                                    or frame.get("state", {}).get("active_intent", "NONE") != "NONE"
+                                        "active_only" not in self.config.name
+                                        or frame.get("state", {}).get("active_intent", "NONE") != "NONE"
                                 )
                             ],
                             "dialogue_acts": {
@@ -256,8 +306,8 @@ class MultiWozV22(datasets.GeneratorBasedBuilder):
                                         },
                                     }
                                     for act_type, dialog_act in mapped_acts.get(turn["turn_id"], {})
-                                    .get("dialog_act", {})
-                                    .items()
+                                        .get("dialog_act", {})
+                                        .items()
                                 ],
                                 "span_info": [
                                     {

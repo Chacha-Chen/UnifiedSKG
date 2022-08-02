@@ -542,6 +542,25 @@ random.seed(577)
 HISTORY_MAX_LEN = 450
 GPT_MAX_LEN = 1024
 
+class RGDataset(Dataset):
+    """Custom data.Dataset compatible with data.DataLoader."""
+
+    def __init__(self, data, args):
+        """Reads source and target sequences from txt files."""
+        self.data = data
+        self.args = args
+
+    def __getitem__(self, index):
+        """Returns one data pair (source and target)."""
+        item_info = self.data[index]
+        if self.args["slot_lang"] == "value":
+            random.shuffle(item_info["value_list"])
+            item_info["intput_text"] += " is " + " or ".join(item_info["value_list"]) + " or none?"
+        return item_info
+
+    def __len__(self):
+        return len(self.data)
+
 
 class DSTDataset(Dataset):
     """Custom data.Dataset compatible with data.DataLoader."""
