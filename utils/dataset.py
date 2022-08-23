@@ -27,7 +27,21 @@ class TokenizedDataset(Dataset):
                 # TODO (commented by Chen): the context part roughly follows the implementation of CoSQL by Tianbao.
                 # text_in = "[utt n] || [utt n-1] | [utt n-2] | ..."
                 index = raw_item["text_in"].index(self.conv_sep)
-                if self.args.model.knowledge_usage == 'concatenate' or self.args.model.knowledge_usage is None:
+                if self.args.model.use_context_prompt and self.args.model.knowledge_usage is None and not self.args.model.use_state:
+                    seq_in = raw_item["text_in"][:index]
+                    history =  raw_item["text_in"][index + len(self.conv_sep):]
+                elif self.args.model.use_context_prompt and self.args.model.knowledge_usage is None and self.args.model.use_state:
+                    tmp_state = ''
+                    for key, value in raw_item['state'].items():
+                        for subkey, subvalue in value.items():
+                            tmp_state += (key + '_' + subkey + ':' + subvalue)
+                            tmp_state += " "
+                    seq_in = "{} ; state: {}".format(raw_item["text_in"][:index],tmp_state,)
+                    history = raw_item["text_in"][index + len(self.conv_sep):]
+                elif self.args.model.knowledge_usage is None:
+                    seq_in = "{} ; context: {}".format(raw_item["text_in"][:index],
+                                                       raw_item["text_in"][index + len(self.conv_sep):])
+                elif self.args.model.knowledge_usage == 'concatenate' :
                     # seq_in  = "[utt n] ; structured knowledge: struct_in ; context: [utt n-1] | [utt n-2] | ..."
                     seq_in = "{} ; structured knowledge: {} ; context: {}".format(raw_item["text_in"][:index],
                                                                                   raw_item["struct_in"],
@@ -67,7 +81,19 @@ class TokenizedDataset(Dataset):
         if self.args.model.use_description and self.args.model.concatenate_description:
             seq_in = "{} ; {}".format(raw_item["description"], seq_in)
 
-        tokenized_question_and_schemas = self.tokenizer(
+        if self.args.model.use_context_prompt:
+            tokenized_question_and_schemas = self.tokenizer(
+                seq_in,
+                padding="max_length",
+                truncation=True,
+                max_length=self.training_args.generation_max_length,
+                # We found that set it as large as possible can boost the performance significantly
+                # , meanwhile, due to the t5 uses a relative position coding, we need to manually
+                # assign the max input length into some large numbers, instead of using the "max_model_length"
+                # ,which the default is 512, which will hurt the performance a lot.
+            )
+        else:
+            tokenized_question_and_schemas = self.tokenizer(
             seq_in,
             padding="max_length",
             truncation=True,
@@ -76,7 +102,7 @@ class TokenizedDataset(Dataset):
             # , meanwhile, due to the t5 uses a relative position coding, we need to manually
             # assign the max input length into some large numbers, instead of using the "max_model_length"
             # ,which the default is 512, which will hurt the performance a lot.
-        )
+            )
         tokenized_inferred = self.tokenizer(
             raw_item["seq_out"],
             padding="max_length",
@@ -117,6 +143,25 @@ class TokenizedDataset(Dataset):
                                                  )
             item['knowledge_input_ids'] = torch.LongTensor(tokenized_knowledge.data["input_ids"])
             item['knowledge_attention_mask'] = torch.LongTensor(tokenized_knowledge.data["attention_mask"])
+
+        if self.args.model.use_context_prompt:
+            # current_usr_utterance = raw_item['text_in'].split('||')[0]
+            # history = raw_item['text_in'].split('||')[1].strip()
+            tokenized_history = self.tokenizer(
+                history,
+                padding="max_length",
+                truncation=True,
+                max_length=self.training_args.input_max_length,
+                # We found that set it as large as possible can boost the performance significantly
+                # , meanwhile, due to the t5 uses a relative position coding, we need to manually
+                # assign the max input length into some large numbers, instead of using the "max_model_length"
+                # ,which the default is 512, which will hurt the performance a lot.
+            )
+            item['context_input_ids'] = torch.LongTensor(tokenized_history.data["input_ids"])
+            item['context_attention_mask'] = torch.LongTensor(tokenized_history.data["attention_mask"])
+
+
+            # tokenized_context = self.tokenizer(raw_item['history'])
 
         return item
 

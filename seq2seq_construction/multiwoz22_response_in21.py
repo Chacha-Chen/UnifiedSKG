@@ -105,17 +105,25 @@ def get_constructed_history_and_golden_response(usr_utterances, sys_utterances):
     as well as the last response(gold response) from user.
     @param usr_utterances:
     @param sys_utterances:
+    The whole dialog:
+    for i in range(len(usr_utterances)):
+        print(sys_utterances[i])
+        print(usr_utterances[i])
     @return:
     """
     # "[prefix] [utterance n] || [sys_utterance n-1] [utterance n-1] | [sys_utterance n-2] [usr_utterance n-2] | ..."
     assert len(usr_utterances) == len(sys_utterances)
 
-    reversed_utterance_head = [sys_utt.strip() + " | " + usr_utt.strip() for sys_utt, usr_utt in zip(reversed(sys_utterances[:-1]), reversed(usr_utterances[:-1]))]
+    reversed_utterance_head = [
+        usr_utt.strip() + " | " + sys_utt.strip()
+        for usr_utt, sys_utt in zip(
+            reversed(usr_utterances[:-1]), reversed(sys_utterances[:-1])
+        )
+    ]
 
-    reversed_utterance_head_str = " | ".join(reversed_utterance_head)
-
-    return (usr_utterances[-1].strip() + " || " + reversed_utterance_head_str, sys_utterances[-1])
-
+    reversed_utterance_head_str = usr_utterances[-1] + " || " + sys_utterances[-1] + " | " + " | ".join(
+        reversed_utterance_head)
+    return reversed_utterance_head_str
 
 class TrainDataset(Dataset):
     def __init__(self, args, raw_datasets, cache_root):
@@ -127,75 +135,64 @@ class TrainDataset(Dataset):
             self.extended_data = torch.load(cache_path)
         else:
             self.extended_data = []
+            count_processed = 0
+            DEBUG_POINT = 5
             for raw_data in self.raw_datasets:
                 # Expand the dialogue data
-                for i in range(1,len(raw_data["turns"]['utterance'])+1):
-                    extend_data = copy.deepcopy(raw_data)
-                    extend_data["usr"] = [
-                        utter for (utter,speaker) in zip(raw_data["turns"]["utterance"],raw_data["turns"]['speaker']) if speaker == 0]
-                    #     extend_data["turns"]["utterance"]
-                    #     for turn in extend_data["turns"]
-                    #     if extend_data["turns"]["speaker"] == "USER"
-                    # ]
-                    extend_data["sys"] = [
-                        # [
-                        utter for (utter,speaker) in zip(raw_data["turns"]["utterance"],raw_data["turns"]['speaker']) if speaker == 1]
-                    #     turn["utterance"]
-                    #     for turn in extend_data["turn"]
-                    #     if turn["speaker"] == "SYSTEM"
-                    # ]
-                    extend_data["usr"] = extend_data["usr"][:i]
-                    extend_data["sys"] = extend_data["sys"][:i]
-                    (
-                        history,
-                        gold_response,
-                    ) = get_constructed_history_and_golden_response(
-                        usr_utterances=extend_data["usr"],
-                        sys_utterances=extend_data["sys"],
-                    )
+                extend_data = copy.deepcopy(raw_data)
+                history = get_constructed_history_and_golden_response(extend_data['dialog']['usr'],
+                                                                      extend_data['dialog']['sys'])
 
-                    ## Chacha comment all db tables
-                    # db_tables, proportions = load_db(raw_data["db_paths"])
-                    #
-                    # linear_table_s = []
-                    #
-                    # history_length = len(tokenizer.tokenize(history))
-                    # table_truncation_max_length_for_table = (
-                    #         args.seq2seq.table_truncation_max_length
-                    #         - history_length
-                    # )
-                    # for table_context, proportion, table_name in zip(db_tables, proportions, raw_data["services"]):
-                    #     tab_processor = get_default_processor(
-                    #         max_cell_length=200,
-                    #         # the max_cell_length is bigger in the MultiWoZ,
-                    #         # e.g. you can check "openhours" in "db/attraction_db.json"
-                    #         tokenizer=tokenizer,
-                    #         max_input_length=int(
-                    #             table_truncation_max_length_for_table * proportion + history_length
-                    #         ),
-                    #         # MARK*: We assign the max length by proportion of each table
-                    #     )
-                    #
-                    #     # modify a table internally
-                    #     for truncate_func in tab_processor.table_truncate_funcs:
-                    #         truncate_func.truncate_table(table_context, history, [])
-                    #     # linearize a table into a string
-                    #     linear_table = tab_processor.table_linearize_func.process_table(
-                    #         table_context
-                    #     )
-                    #     linear_table = "{}: {}".format(table_name, linear_table)
-                    #     linear_table_s.append(linear_table)
-                    #
-                    # linear_tables = " || ".join(linear_table_s)
+                if (not args.seq2seq.mode) or (args.seq2seq.mode == "sequential"):
+                    output_text = ", ".join(["{}-{}".format(slot, value).replace("-", " ") for slot, value in
+                                             zip(extend_data['expanded_turn_belief']['slot'],
+                                                 extend_data['expanded_turn_belief']['value'])])
 
                     extend_data.update(
                         {
                             "struct_in": "",
                             "text_in": history.lower(),
-                            "seq_out": gold_response.lower(),
+                            "seq_out": output_text.lower(),
                         }
                     )
                     self.extended_data.append(extend_data)
+
+                elif args.seq2seq.mode == "separate":
+                    for slot, value in zip(extend_data['expanded_turn_belief']['slot'],
+                                           extend_data['expanded_turn_belief']['value']):
+                        # When changing the order of "sk input, question and context", we need to modify here too.
+                        # we admit it was our mistake of design in that part.
+                        slot_history = "{}: {}".format(slot, history)
+                        output_text = value
+
+                        extend_extend_data = copy.deepcopy(extend_data)
+                        del extend_extend_data['expanded_turn_belief']
+                        del extend_extend_data['ontology_slots']
+                        del extend_extend_data['ontology_values']
+
+                        extend_extend_data.update(
+                            {
+                                "struct_in": "",
+                                "text_in": slot_history.lower(),
+                                "seq_out": output_text.lower(),
+                                "slot": slot
+                            }
+                        )
+                        self.extended_data.append(extend_extend_data)
+
+                elif args.seq2seq.mode == 'seq2seq':  # direct seq2seq without struct in grounding
+                    output_text = ", ".join(extend_data['turn_belief'])
+                    extend_data.update(
+                        {
+                            "struct_in": "",
+                            "text_in": history.lower(),
+                            "seq_out": output_text.lower(),
+                        }
+                    )
+                    self.extended_data.append(extend_data)
+
+                else:
+                    raise ValueError("Other seq2seq method not support yet!")
             if args.dataset.use_cache:
                 torch.save(self.extended_data, cache_path)
 

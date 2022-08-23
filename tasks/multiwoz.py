@@ -40,6 +40,9 @@ DICT_SIZE = 400
 MAX_LENGTH = 50
 IGNORE_KEYS_IN_GOAL = ['eod', 'topic', 'messageLen', 'message']
 
+digitpat = re.compile('\d+')
+timepat = re.compile("\d{1,2}[:]\d{1,2}")
+pricepat2 = re.compile("\d{1,3}[.]\d{1,2}")
 fin = open('third_party/zero_shot_dst/T5DST/utils/mapping.pair', 'r')
 replacements = []
 for line in fin.readlines():

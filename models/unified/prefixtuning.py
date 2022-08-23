@@ -49,6 +49,7 @@ class Model(PushToHubFriendlyModel):
         # Prefix related.
         self.register_buffer('input_tokens', torch.arange(self.preseqlen).long())
 
+        self.context_encoder = nn.Embedding(128, self.n_embd)
         self.wte = nn.Embedding(self.preseqlen, self.n_embd)
         self.control_trans = nn.Sequential(
             nn.Linear(self.n_embd, self.mid_dim),
@@ -109,15 +110,19 @@ class Model(PushToHubFriendlyModel):
             for param in self.control_trans_enc.parameters():
                 param.requires_grad = False
 
-    def get_prompt(self, bsz=None, sample_size=1, description=None, knowledge=None):
+    def get_prompt(self, bsz=None, sample_size=1, description=None, knowledge=None, context=None):
         old_bsz = bsz
         bsz = bsz * sample_size
-        input_tokens = self.input_tokens.unsqueeze(0).expand(bsz, -1)
-        temp_control = self.wte(input_tokens)
+        if context is not None:
+            # input_tokens = context
+            temp_control = context
+        else:
+            input_tokens = self.input_tokens.unsqueeze(0).expand(bsz, -1)
+            temp_control = self.wte(input_tokens)
         if description is not None:
             temp_control = temp_control + description.repeat_interleave(sample_size, dim=0).unsqueeze(1)
         past_key_values = self.control_trans(temp_control)  # bsz, seqlen, layer*emb
-        if knowledge is not None:
+        if knowledge is not None: ## TODO what is past key values
             past_key_values = torch.cat([past_key_values, self.knowledge_trans(knowledge.repeat_interleave(sample_size, dim=0))], dim=1)
 
         bsz, seqlen, _ = past_key_values.shape
@@ -128,7 +133,10 @@ class Model(PushToHubFriendlyModel):
         past_key_values = past_key_values.permute([2, 0, 3, 1, 4]).split(2)
 
         # Cross prefix
-        temp_control_dec = self.wte_dec(input_tokens)
+        if context is not None:
+            temp_control_dec = context
+        else:
+            temp_control_dec = self.wte_dec(input_tokens)
         if description is not None:
             temp_control_dec = temp_control_dec + description.repeat_interleave(sample_size, dim=0).unsqueeze(1)
         past_key_values_dec = self.control_trans_dec(
@@ -148,7 +156,10 @@ class Model(PushToHubFriendlyModel):
         input_tokens_enc = (
             self.input_tokens.unsqueeze(0).expand(old_bsz, -1)
         )
-        temp_control_enc = self.wte_enc(input_tokens_enc)
+        if context is not None:
+            temp_control_enc = context
+        else:
+            temp_control_enc = self.wte_enc(input_tokens_enc)
         if description is not None:
             temp_control_enc = temp_control_enc + description.unsqueeze(1)
         past_key_values_enc = self.control_trans_enc(
@@ -240,12 +251,37 @@ class Model(PushToHubFriendlyModel):
                 knowledge = knowledge_outputs.last_hidden_state
             else:
                 raise ValueError()
-        elif self.args.model.knowledge_usage == 'concatenate':
+        elif self.args.model.knowledge_usage == 'concatenate' or self.args.model.knowledge_usage is None:
             knowledge = None
         else:
             raise ValueError()
 
         return knowledge
+
+    def get_context_representation(self, kwargs):
+        if self.args.model.use_context_prompt:
+            context_input_ids = kwargs.pop("context_input_ids", None)
+            context_attention_mask = kwargs.pop("context_attention_mask", None)
+            if self.args.bert.location in ["t5-small", "t5-base", "t5-large", "t5-3b", "t5-11b"]:
+                context_outputs = self.pretrain_model.encoder(
+                    input_ids=context_input_ids,
+                    attention_mask=context_attention_mask,
+                )
+                context = context_outputs.last_hidden_state
+            elif self.args.bert.location in ["facebook/bart-base", "facebook/bart-large"]:
+                context_outputs = self.pretrain_model.model.encoder(
+                    input_ids=context_input_ids,
+                    attention_mask=context_attention_mask,
+                )
+                context = context_outputs.last_hidden_state
+            else:
+                raise ValueError()
+        else:
+            context = None
+        # else:
+        #     raise ValueError()
+
+        return context
 
     def forward(self,
                 input_ids,
@@ -261,8 +297,11 @@ class Model(PushToHubFriendlyModel):
         # Encode knowledge.
         knowledge_representation = self.get_knowledge_representation(kwargs)
 
+        # Encode context
+        context_representation = self.get_context_representation(kwargs)
+
         past_prompt = self.get_prompt(
-            bsz=bsz, description=description_representation, knowledge=knowledge_representation,
+            bsz=bsz, description=description_representation, knowledge=knowledge_representation, context = context_representation
         )
 
         loss = self.pretrain_model(
