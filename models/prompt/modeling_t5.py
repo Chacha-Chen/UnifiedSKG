@@ -483,7 +483,10 @@ class T5Attention(nn.Module):
 
         # Concatenate prefix to key-value states.  # TODO: Chen
         if prefix is not None:
-            key_states = torch.cat([prefix["prev_key"], key_states], dim=2)
+            try:
+                key_states = torch.cat([prefix["prev_key"], key_states], dim=2)
+            except:
+                pass
             value_states = torch.cat([prefix["prev_value"], value_states], dim=2)  # TODO: Chen
 
         # compute scores

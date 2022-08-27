@@ -289,6 +289,10 @@ class EvaluateFriendlySeq2SeqTrainer(transformers.trainer_seq2seq.Seq2SeqTrainer
             gen_kwargs["knowledge_input_ids"] = inputs["knowledge_input_ids"]
         if "knowledge_attention_mask" in inputs:
             gen_kwargs["knowledge_attention_mask"] = inputs["knowledge_attention_mask"]
+        if "context_input_ids" in inputs:
+            gen_kwargs["context_input_ids"] = inputs["context_input_ids"]
+        if "context_attention_mask" in inputs:
+            gen_kwargs["context_attention_mask"] = inputs["context_attention_mask"]
         if "task_ids" in inputs:
             gen_kwargs["task_ids"] = inputs["task_ids"]
 
@@ -352,3 +356,4 @@ class EvaluateFriendlySeq2SeqTrainer(transformers.trainer_seq2seq.Seq2SeqTrainer
 
     def _compute_metrics(self, eval_prediction: EvalPrediction, section) -> dict:
         return self.evaluator.evaluate(eval_prediction.predictions, eval_prediction.items, section)
+

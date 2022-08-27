@@ -34,6 +34,6 @@ class EvaluateTool(object):
             for key, metric in summary_tmp.items():  # TODO
                 summary[os.path.join(arg_path, key)] = metric
             # summary[os.path.join(arg_path, args.train.stop)] = summary_tmp[args.train.stop]
-
-        summary['avr'] = float(np.mean([float(v) for k, v in summary.items()]))
+        # summary['avr'] = summary[os.path.join(arg_path, key)]["bleu"]['mwz22']
+        summary['avr'] = float(np.mean([float(v) for k, v in summary.items()])) ## TODO adhoc
         return summary

@@ -40,6 +40,9 @@ DICT_SIZE = 400
 MAX_LENGTH = 50
 IGNORE_KEYS_IN_GOAL = ['eod', 'topic', 'messageLen', 'message']
 
+digitpat = re.compile('\d+')
+timepat = re.compile("\d{1,2}[:]\d{1,2}")
+pricepat2 = re.compile("\d{1,3}[.]\d{1,2}")
 fin = open('third_party/zero_shot_dst/T5DST/utils/mapping.pair', 'r')
 replacements = []
 for line in fin.readlines():
@@ -541,6 +544,25 @@ EXPERIMENT_DOMAINS = ["hotel", "train", "restaurant", "attraction", "taxi"]
 random.seed(577)
 HISTORY_MAX_LEN = 450
 GPT_MAX_LEN = 1024
+
+class RGDataset(Dataset):
+    """Custom data.Dataset compatible with data.DataLoader."""
+
+    def __init__(self, data, args):
+        """Reads source and target sequences from txt files."""
+        self.data = data
+        self.args = args
+
+    def __getitem__(self, index):
+        """Returns one data pair (source and target)."""
+        item_info = self.data[index]
+        if self.args["slot_lang"] == "value":
+            random.shuffle(item_info["value_list"])
+            item_info["intput_text"] += " is " + " or ".join(item_info["value_list"]) + " or none?"
+        return item_info
+
+    def __len__(self):
+        return len(self.data)
 
 
 class DSTDataset(Dataset):

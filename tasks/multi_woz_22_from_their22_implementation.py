@@ -56,7 +56,7 @@ _LICENSE = "Apache License 2.0"
 URL = "https://github.com/budzianowski/multiwoz/archive/44f0f8479f11721831c5591b839ad78827da197b.zip"
 
 
-def load_entities(multi_woz_22_entity_file_paths: list):
+def load_entities(multi_woz_22_entity_file_paths: list, db_rootpath):
     """
 
     @param multi_woz_22_entity_file_paths: a list of .json which we can load kb/entities
@@ -64,9 +64,14 @@ def load_entities(multi_woz_22_entity_file_paths: list):
     """
     under_scored_entity_dict = OrderedDict()
     for multi_woz_22_entity_file_path in multi_woz_22_entity_file_paths:
-        with open(multi_woz_22_entity_file_path) as f:
+        with open(os.path.join(db_rootpath,multi_woz_22_entity_file_path),'r') as f:
             # FIXME: ask dialogue expert for whether this mean of entities extraction is right
-            entities = json.load(f)
+            # with open(db_paths[domain], 'r') as f:
+            #     self.dbs[domain] = json.loads(f.read().lower())
+            # entities = json.load(f)
+            print(multi_woz_22_entity_file_path)
+            entities = json.loads(f.read())
+            # print(entities)
             for entity_item in entities:
                 for entity_name, entity_value in entity_item.items():
                     if isinstance(entity_value, str):
@@ -209,9 +214,12 @@ class MultiWozV22(datasets.GeneratorBasedBuilder):
 
         data_files = __get_file_paths_dict(data_path)
         db_root_path = os.path.join(data_path, "multiwoz-44f0f8479f11721831c5591b839ad78827da197b", "db")
+        print("root path", db_root_path)
+        print(os.listdir(db_root_path))
         db_paths = [path for path in os.listdir(db_root_path) if str(path).endswith(".json")]
 
-        self.global_entities = load_entities(db_paths)
+        print(db_paths)
+        self.global_entities = load_entities(db_paths, db_root_path)
         self.stored_dialogue_acts = json.load(open(data_files["dialogue_acts"]))
 
         return [

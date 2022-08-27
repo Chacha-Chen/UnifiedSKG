@@ -103,7 +103,7 @@ class TrainDataset(Dataset):
 
                     extend_data.update(
                         {
-                            "struct_in": slot_ontology_values_str.lower() if args.seq2seq.use_struct_in else "",
+                            "struct_in": slot_ontology_values_str.lower(),
                             "text_in": history.lower(),
                             "seq_out": output_text.lower(),
                         }
@@ -125,24 +125,13 @@ class TrainDataset(Dataset):
 
                         extend_extend_data.update(
                             {
-                                "struct_in": slot_ontology_values_str.lower() if args.seq2seq.use_struct_in else "",
+                                "struct_in": slot_ontology_values_str.lower(),
                                 "text_in": slot_history.lower(),
                                 "seq_out": output_text.lower(),
                                 "slot": slot
                             }
                         )
                         self.extended_data.append(extend_extend_data)
-
-                elif args.seq2seq.mode == 'seq2seq': #direct seq2seq without struct in grounding
-                    output_text = ", ".join(extend_data['turn_belief'])
-                    extend_data.update(
-                        {
-                            "struct_in": "",
-                            "text_in": history.lower(),
-                            "seq_out": output_text.lower(),
-                        }
-                    )
-                    self.extended_data.append(extend_data)
 
                 else:
                     raise ValueError("Other seq2seq method not support yet!")
@@ -186,7 +175,7 @@ class DevDataset(Dataset):
 
                     extend_data.update(
                         {
-                            "struct_in": slot_ontology_values_str.lower() if args.seq2seq.use_struct_in else "",
+                            "struct_in": slot_ontology_values_str.lower(),
                             "text_in": history.lower(),
                             "seq_out": output_text.lower(),
                         }
@@ -208,7 +197,7 @@ class DevDataset(Dataset):
 
                         extend_extend_data.update(
                             {
-                                "struct_in": slot_ontology_values_str.lower() if args.seq2seq.use_struct_in else "",
+                                "struct_in": slot_ontology_values_str.lower(),
                                 "text_in": slot_history.lower(),
                                 "seq_out": output_text.lower(),
                                 "slot": slot
@@ -216,16 +205,7 @@ class DevDataset(Dataset):
                         )
 
                         self.extended_data.append(extend_extend_data)
-                elif args.seq2seq.mode == 'seq2seq': #direct seq2seq without struct in grounding
-                    output_text = ", ".join(extend_data['turn_belief'])
-                    extend_data.update(
-                        {
-                            "struct_in": "",
-                            "text_in": history.lower(),
-                            "seq_out": output_text.lower(),
-                        }
-                    )
-                    self.extended_data.append(extend_data)
+
                 else:
                     raise ValueError("Other seq2seq method not support yet!")
 
@@ -269,7 +249,7 @@ class TestDataset(Dataset):
 
                     extend_data.update(
                         {
-                            "struct_in": slot_ontology_values_str.lower() if args.seq2seq.use_struct_in else "",
+                            "struct_in": slot_ontology_values_str.lower(),
                             "text_in": history.lower(),
                             "seq_out": output_text.lower(),
                         }
@@ -291,23 +271,14 @@ class TestDataset(Dataset):
 
                         extend_extend_data.update(
                             {
-                                "struct_in": slot_ontology_values_str.lower() if args.seq2seq.use_struct_in else "",
+                                "struct_in": slot_ontology_values_str.lower(),
                                 "text_in": slot_history.lower(),
                                 "seq_out": output_text.lower(),
                                 "slot": slot
                             }
                         )
                         self.extended_data.append(extend_extend_data)
-                elif args.seq2seq.mode == 'seq2seq': #direct seq2seq without struct in grounding
-                    output_text = ", ".join(extend_data['turn_belief'])
-                    extend_data.update(
-                        {
-                            "struct_in": "",
-                            "text_in": history.lower(),
-                            "seq_out": output_text.lower(),
-                        }
-                    )
-                    self.extended_data.append(extend_data)
+
                 else:
                     raise ValueError("Other seq2seq method not support yet!")
 

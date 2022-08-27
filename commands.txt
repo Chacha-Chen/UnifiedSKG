@@ -1,0 +1,32 @@
+python -m torch.distributed.launch --nproc_per_node 4 --master_port 1234 train.py  --seed 1 --cfg chacha_test/T5_base_prefix_multiwoz.cfg --run_name chacha_test --logging_strategy steps --logging_first_step true --logging_steps 4 --evaluation_strategy steps --eval_steps 500 --metric_for_best_model avr --greater_is_better true --save_strategy steps --save_steps 500 --save_total_limit 1 --load_best_model_at_end --gradient_accumulation_steps 8 --num_train_epochs 20 --adafactor true --learning_rate 5e-5 --do_train --do_eval --do_predict --predict_with_generate --output_dir output/T5_base_prefix_multiwoz_chacha_test --overwrite_output_dir --per_device_train_batch_size 2 --per_device_eval_batch_size 8 --generation_num_beams 4 --generation_max_length 128 --input_max_length 1024 --ddp_find_unused_parameters true
+
+
+
+
+
+
+python -m torch.distributed.launch --nproc_per_node 4 --master_port 1238 train.py  --seed 1 --cfg Salesforce/T5_base_prefix_multiwoz.cfg --run_name chacha_test_original_webnlg --logging_strategy steps --logging_first_step true --logging_steps 4 --evaluation_strategy steps --eval_steps 500 --metric_for_best_model avr --greater_is_better true --save_strategy steps --save_steps 500 --save_total_limit 1 --load_best_model_at_end --gradient_accumulation_steps 8 --num_train_epochs 400 --adafactor true --learning_rate 5e-5 --do_train --do_eval --do_predict --predict_with_generate --output_dir output/T5_base_prefix_multiwoz_original_chacha_test --overwrite_output_dir --per_device_train_batch_size 2 --per_device_eval_batch_size 8 --generation_num_beams 4 --generation_max_length 128 --input_max_length 1024 --ddp_find_unused_parameters true
+
+
+T5-base prefix-tuning on multiWoZ DST task (4 GPUs, 128 effective batch size) 4 Tesla V100 ~20h training
+python -m torch.distributed.launch --nproc_per_node 4 --master_port 1234 train.py --seed 1 --cfg Salesforce/T5_base_prefix_multiwoz.cfg --run_name T5_base_prefix_multiwoz --logging_strategy steps --logging_first_step true --logging_steps 4 --evaluation_strategy steps --eval_steps 500 --metric_for_best_model avr --greater_is_better true --save_strategy steps --save_steps 500 --save_total_limit 1 --load_best_model_at_end --gradient_accumulation_steps 8 --num_train_epochs 50 --adafactor true --learning_rate 5e-5 --do_train --do_eval --do_predict --predict_with_generate --output_dir output/T5_base_prefix_multiwoz --overwrite_output_dir --per_device_train_batch_size 4 --per_device_eval_batch_size 16 --generation_num_beams 4 --generation_max_length 128 --input_max_length 1024 --ddp_find_unused_parameters true
+
+
+## Kill process
+kill $(ps aux | grep "train.py" | grep -v grep | awk '{print $2}')
+
+## running machine 2
+ssh -i sanswamy_console_dd_use.pem ubuntu@ec2-3-135-219-61.us-east-2.compute.amazonaws.com
+
+## runing machine 1
+ssh -i nargesam_console.pem ubuntu@ec2-34-222-12-113.us-west-2.compute.amazonaws.com
+
+## debug machine 
+ ssh -i ~/Documents/qiaqia_console.pem ubuntu@ec2-35-166-74-218.us-west-2.compute.amazonaws.com
+
+scp -i sanswamy_console_dd_use.pem ubuntu@ec2-3-135-219-61.us-east-2.compute.amazonaws.com:/home/ubuntu/chacha_code/multiwoz/data/multiwoz2.2_delex_data.zip ./ 
+
+scp -i sanswamy_console_dd_use.pem ubuntu@ec2-3-135-219-61.us-east-2.compute.amazonaws.com:/home/ubuntu/chacha_code/UnifiedSKG/output/T5_base_prefix_multiwoz22_response/predictions_eval_4.791320276173031.json ./
+
+## prevent terminal from sleeping
+caffeinate -disu

@@ -23,6 +23,7 @@ from utils.training_arguments import WrappedSeq2SeqTrainingArguments
 logger = logging.getLogger(__name__)
 
 
+
 def main() -> None:
     os.environ[
         'CUBLAS_WORKSPACE_CONFIG'] = ':4096:8'  # Deterministic behavior of torch.addmm. Please refer to https://docs.nvidia.com/cuda/cublas/index.html#cublasApi_reproducibility
@@ -127,6 +128,11 @@ def main() -> None:
                                     seq2seq_eval_dataset) if seq2seq_eval_dataset else None
     test_dataset = TokenizedDataset(args, training_args, model_tokenizer,
                                     seq2seq_test_dataset) if seq2seq_test_dataset else None
+    # eval_dataset = train_dataset
+    # test_dataset = train_dataset
+    # seq2seq_eval_dataset = seq2seq_train_dataset
+    # seq2seq_test_dataset = seq2seq_train_dataset
+
 
     # Initialize our Trainer
     early_stopping_callback = EarlyStoppingCallback(early_stopping_patience=args.seq2seq.patience if args.seq2seq.patience else 5)
@@ -148,6 +154,7 @@ def main() -> None:
     # Load model weights (for --do_train=False or post finetuning).
     if training_args.load_weights_from:
         state_dict = torch.load(os.path.join(training_args.load_weights_from, transformers.WEIGHTS_NAME), map_location="cpu")
+        print("loading weights from", os.path.join(training_args.load_weights_from, transformers.WEIGHTS_NAME))
         trainer.model.load_state_dict(state_dict, strict=True)
         # release memory
         del state_dict
