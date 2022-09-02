@@ -525,7 +525,7 @@ class TrainOldDataset(Dataset):
         else:
             self.extended_data = []
             count_processed = 0
-            DEBUG_POINT = 5
+            DEBUG_POINT = 3
             for raw_data in self.raw_datasets:
                 # Expand the dialogue data
                 count_processed += 1
