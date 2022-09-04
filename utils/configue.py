@@ -22,7 +22,7 @@ class Args(object):
             return super().__getattribute__(name)
         if name not in dir(self):
             return None
-        return super().__getattribute__(name)git
+        return super().__getattribute__(name)
 
     def __setattr__(self, name, value):
         if not (value is None) or (name[:2] == "__" and name[-2:] == "__"):
