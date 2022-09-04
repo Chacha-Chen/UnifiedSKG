@@ -31,10 +31,10 @@ from transformers.models.albert.modeling_albert import (
     AlbertModel,
 )
 # Instead of loading the BART from the transformers==4.9.1, we choose to load from our own prefix-tuning version.
-from .modeling_bart import (
-    BartForConditionalGeneration,
-    BartModel,
-)
+# from .modeling_bart import (
+#     BartForConditionalGeneration,
+#     BartModel,
+# )
 from transformers.models.bart.modeling_bart import (
     BartForCausalLM,
     BartForQuestionAnswering,
@@ -315,7 +315,7 @@ from transformers.models.xlnet.modeling_xlnet import (
 from transformers.models.auto.auto_factory import _BaseAutoModelClass, auto_class_update
 from transformers.models.auto.configuration_auto import (
     AlbertConfig,
-    BartConfig,
+    # BartConfig,
     BertConfig,
     BertGenerationConfig,
     BigBirdConfig,
@@ -411,7 +411,7 @@ MODEL_MAPPING = OrderedDict(
         (AlbertConfig, AlbertModel),
         (CamembertConfig, CamembertModel),
         (XLMRobertaConfig, XLMRobertaModel),
-        (BartConfig, BartModel),
+        # (BartConfig, BartModel),
         (LongformerConfig, LongformerModel),
         (RobertaConfig, RobertaModel),
         (LayoutLMConfig, LayoutLMModel),
@@ -455,7 +455,7 @@ MODEL_FOR_PRETRAINING_MAPPING = OrderedDict(
         (AlbertConfig, AlbertForPreTraining),
         (CamembertConfig, CamembertForMaskedLM),
         (XLMRobertaConfig, XLMRobertaForMaskedLM),
-        (BartConfig, BartForConditionalGeneration),
+        # (BartConfig, BartForConditionalGeneration),
         (FSMTConfig, FSMTForConditionalGeneration),
         (LongformerConfig, LongformerForMaskedLM),
         (RobertaConfig, RobertaForMaskedLM),
@@ -504,7 +504,7 @@ MODEL_WITH_LM_HEAD_MAPPING = OrderedDict(
         (XLMRobertaConfig, XLMRobertaForMaskedLM),
         (MarianConfig, MarianMTModel),
         (FSMTConfig, FSMTForConditionalGeneration),
-        (BartConfig, BartForConditionalGeneration),
+        # (BartConfig, BartForConditionalGeneration),
         (LongformerConfig, LongformerForMaskedLM),
         (RobertaConfig, RobertaForMaskedLM),
         (SqueezeBertConfig, SqueezeBertForMaskedLM),
@@ -555,7 +555,7 @@ MODEL_FOR_CAUSAL_LM_MAPPING = OrderedDict(
         (BertGenerationConfig, BertGenerationDecoder),
         (XLMProphetNetConfig, XLMProphetNetForCausalLM),
         (ProphetNetConfig, ProphetNetForCausalLM),
-        (BartConfig, BartForCausalLM),
+        # (BartConfig, BartForCausalLM),
         (MBartConfig, MBartForCausalLM),
         (PegasusConfig, PegasusForCausalLM),
         (MarianConfig, MarianForCausalLM),
@@ -583,7 +583,7 @@ MODEL_FOR_MASKED_LM_MAPPING = OrderedDict(
         (LayoutLMConfig, LayoutLMForMaskedLM),
         (DistilBertConfig, DistilBertForMaskedLM),
         (AlbertConfig, AlbertForMaskedLM),
-        (BartConfig, BartForConditionalGeneration),
+        # (BartConfig, BartForConditionalGeneration),
         (MBartConfig, MBartForConditionalGeneration),
         (CamembertConfig, CamembertForMaskedLM),
         (XLMRobertaConfig, XLMRobertaForMaskedLM),
@@ -626,7 +626,7 @@ MODEL_FOR_SEQ_TO_SEQ_CAUSAL_LM_MAPPING = OrderedDict(
         (MarianConfig, MarianMTModel),
         (MBartConfig, MBartForConditionalGeneration),
         (BlenderbotConfig, BlenderbotForConditionalGeneration),
-        (BartConfig, BartForConditionalGeneration),
+        # (BartConfig, BartForConditionalGeneration),
         (FSMTConfig, FSMTForConditionalGeneration),
         (EncoderDecoderConfig, EncoderDecoderModel),
         (XLMProphetNetConfig, XLMProphetNetForConditionalGeneration),
@@ -648,7 +648,7 @@ MODEL_FOR_SEQUENCE_CLASSIFICATION_MAPPING = OrderedDict(
         (CamembertConfig, CamembertForSequenceClassification),
         (XLMRobertaConfig, XLMRobertaForSequenceClassification),
         (MBartConfig, MBartForSequenceClassification),
-        (BartConfig, BartForSequenceClassification),
+        # (BartConfig, BartForSequenceClassification),
         (LongformerConfig, LongformerForSequenceClassification),
         (RobertaConfig, RobertaForSequenceClassification),
         (SqueezeBertConfig, SqueezeBertForSequenceClassification),
@@ -687,7 +687,7 @@ MODEL_FOR_QUESTION_ANSWERING_MAPPING = OrderedDict(
         (DistilBertConfig, DistilBertForQuestionAnswering),
         (AlbertConfig, AlbertForQuestionAnswering),
         (CamembertConfig, CamembertForQuestionAnswering),
-        (BartConfig, BartForQuestionAnswering),
+        # (BartConfig, BartForQuestionAnswering),
         (MBartConfig, MBartForQuestionAnswering),
         (LongformerConfig, LongformerForQuestionAnswering),
         (XLMRobertaConfig, XLMRobertaForQuestionAnswering),

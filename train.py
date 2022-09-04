@@ -128,10 +128,10 @@ def main() -> None:
                                     seq2seq_eval_dataset) if seq2seq_eval_dataset else None
     test_dataset = TokenizedDataset(args, training_args, model_tokenizer,
                                     seq2seq_test_dataset) if seq2seq_test_dataset else None
-    # eval_dataset = train_dataset
-    # test_dataset = train_dataset
-    # seq2seq_eval_dataset = seq2seq_train_dataset
-    # seq2seq_test_dataset = seq2seq_train_dataset
+    eval_dataset = train_dataset
+    test_dataset = train_dataset
+    seq2seq_eval_dataset = seq2seq_train_dataset
+    seq2seq_test_dataset = seq2seq_train_dataset
 
 
     # Initialize our Trainer

@@ -93,24 +93,25 @@ class Model(PushToHubFriendlyModel):
 
         if args.model.use_prefix:
             self.dropout = nn.Dropout(args.prefix_tuning.prefix_dropout)
+            if self.args.model.freeze_prefix:
+                for param in self.wte.parameters():
+                    param.requires_grad = False
+                for param in self.control_trans.parameters():
+                    param.requires_grad = False
+                for param in self.wte_dec.parameters():
+                    param.requires_grad = False
+                for param in self.control_trans_dec.parameters():
+                    param.requires_grad = False
+                for param in self.wte_enc.parameters():
+                    param.requires_grad = False
+                for param in self.control_trans_enc.parameters():
+                    param.requires_grad = False
 
         if self.args.model.freeze_plm:
             for name, param in self.pretrain_model.named_parameters():
                 if 'adapter' not in name:
                     param.requires_grad = False
-        if self.args.model.freeze_prefix:
-            for param in self.wte.parameters():
-                param.requires_grad = False
-            for param in self.control_trans.parameters():
-                param.requires_grad = False
-            for param in self.wte_dec.parameters():
-                param.requires_grad = False
-            for param in self.control_trans_dec.parameters():
-                param.requires_grad = False
-            for param in self.wte_enc.parameters():
-                param.requires_grad = False
-            for param in self.control_trans_enc.parameters():
-                param.requires_grad = False
+
 
     def get_prompt(self, bsz=None, sample_size=1, description=None, knowledge=None):
         old_bsz = bsz
