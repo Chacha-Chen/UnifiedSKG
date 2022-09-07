@@ -36,8 +36,17 @@ class TokenizedDataset(Dataset):
                         for subkey, subvalue in value.items():
                             tmp_state += (key + '_' + subkey + ':' + subvalue)
                             tmp_state += " "
-                    seq_in = "{} ; state: {}".format(raw_item["text_in"][:index],tmp_state,)
+                    seq_in = "{} ; state: {}".format(raw_item["text_in"][:index], tmp_state.strip(),)
                     history = raw_item["text_in"][index + len(self.conv_sep):]
+                elif self.args.model.knowledge_usage is None and self.args.model.use_state:
+                    tmp_state = ''
+                    for key, value in raw_item['state'].items():
+                        for subkey, subvalue in value.items():
+                            tmp_state += (key + '_' + subkey + ':' + subvalue)
+                            tmp_state += " "
+                    seq_in = "{}; state: {}; context: {}".format(raw_item["text_in"][:index],
+                                                                 tmp_state,
+                                                                 raw_item["text_in"][index + len(self.conv_sep):])
                 elif self.args.model.knowledge_usage is None:
                     seq_in = "{} ; context: {}".format(raw_item["text_in"][:index],
                                                        raw_item["text_in"][index + len(self.conv_sep):])
